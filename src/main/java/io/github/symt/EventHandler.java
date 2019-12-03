@@ -31,7 +31,6 @@ public class EventHandler {
   private FontRenderer renderer = Minecraft.getMinecraft().fontRendererObj;
   private int attackedEntity = -1;
   private int prevEntity = -1;
-  private long lastHit = 0;
 
   @SubscribeEvent(priority = EventPriority.HIGH)
   public void onMobDeath(LivingDeathEvent event) {
@@ -42,7 +41,6 @@ public class EventHandler {
         && (event.entity.getName().substring(2).equals("Enderman")
         || event.entity instanceof EntityEnderman)
         && prevEntity != event.entity.getEntityId()
-        && System.currentTimeMillis() - lastHit < 150
         && ZealotCounter.dragonsNest) {
       prevEntity = event.entity.getEntityId();
       ZealotCounter.zealotCount++;
@@ -56,7 +54,6 @@ public class EventHandler {
         (event.target.getName().substring(2).equals("Enderman")
             || event.target instanceof EntityEnderman) && ZealotCounter.dragonsNest) {
       attackedEntity = event.target.getEntityId();
-      lastHit = System.currentTimeMillis();
     }
   }
 
