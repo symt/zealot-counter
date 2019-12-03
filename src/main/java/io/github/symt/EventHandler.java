@@ -6,6 +6,8 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DecimalFormat;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.entity.monster.EntityEnderman;
@@ -33,7 +35,6 @@ public class EventHandler {
 
   @SubscribeEvent(priority = EventPriority.HIGH)
   public void onMobDeath(LivingDeathEvent event) {
-    System.out.println(event.entity.getCustomNameTag());
     MovingObjectPosition objectMouseOver = Minecraft.getMinecraft().objectMouseOver;
     if (((objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectType.ENTITY
         && objectMouseOver.entityHit.getEntityId() == event.entity.getEntityId())
@@ -72,62 +73,59 @@ public class EventHandler {
     if (firstJoin) {
       ZealotCounter.loggedIn = true;
       firstJoin = false;
-      Minecraft.getMinecraft().addScheduledTask(() -> {
-        new Thread(() -> {
-          try {
-            URL url = new URL("https://api.github.com/repos/symt/zealot-counter/releases/latest");
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
-            con.setRequestProperty("User-Agent", "Mozilla/5.0");
-            int responseCode = con.getResponseCode();
+      new ScheduledThreadPoolExecutor(1).schedule(() -> {
+        try {
+          URL url = new URL("https://api.github.com/repos/symt/zealot-counter/releases/latest");
+          HttpURLConnection con = (HttpURLConnection) url.openConnection();
+          con.setRequestMethod("GET");
+          con.setRequestProperty("User-Agent", "Mozilla/5.0");
+          int responseCode = con.getResponseCode();
 
-            if (responseCode == 200) {
-              BufferedReader in = new BufferedReader(
-                  new InputStreamReader(con.getInputStream()));
-              String inputLine;
-              StringBuilder response = new StringBuilder();
+          if (responseCode == 200) {
+            BufferedReader in = new BufferedReader(
+                new InputStreamReader(con.getInputStream()));
+            String inputLine;
+            StringBuilder response = new StringBuilder();
 
-              while ((inputLine = in.readLine()) != null) {
-                response.append(inputLine);
-              }
-              in.close();
+            while ((inputLine = in.readLine()) != null) {
+              response.append(inputLine);
+            }
+            in.close();
 
-              JSONObject json = new JSONObject(response.toString());
-              String latest = ((String) json.get("tag_name"));
-              String[] latestTag = latest.split("\\.");
-              String current = ZealotCounter.VERSION;
-              String[] currentTag = current.split("\\.");
+            JSONObject json = new JSONObject(response.toString());
+            String latest = ((String) json.get("tag_name"));
+            String[] latestTag = latest.split("\\.");
+            String current = ZealotCounter.VERSION;
+            String[] currentTag = current.split("\\.");
 
-              System.out.println(latestTag.length + " " + currentTag.length);
-              if (latestTag.length == 3 && currentTag.length == 3) {
-                for (int i = 0; i < latestTag.length; i++) {
-                  if (latestTag[i].compareTo(currentTag[i]) != 0) {
+            if (latestTag.length == 3 && currentTag.length == 3) {
+              for (int i = 0; i < latestTag.length; i++) {
+                if (latestTag[i].compareTo(currentTag[i]) != 0) {
+                  Minecraft.getMinecraft().thePlayer
+                      .addChatMessage(new ChatComponentTranslation("", new Object[0]));
+                  if (latestTag[i].compareTo(currentTag[i]) <= -1) {
                     Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(new ChatComponentTranslation("", new Object[0]));
-                    if (latestTag[i].compareTo(currentTag[i]) <= -1) {
-                      Minecraft.getMinecraft().thePlayer
-                          .addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN +
-                              "You are currently on a pre-release build of ZealotCounter. Please report any bugs that you may come across"));
-                    } else if (latestTag[i].compareTo(currentTag[i]) >= 1) {
-                      Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
-                          EnumChatFormatting.GREEN + "You are currently on version "
-                              + EnumChatFormatting.DARK_GREEN + current + EnumChatFormatting.GREEN
-                              + " and the latest version is " + EnumChatFormatting.DARK_GREEN
-                              + latest + EnumChatFormatting.GREEN
-                              + ". Please update to the latest version of ZealotCounter."));
-                    }
-                    Minecraft.getMinecraft().thePlayer
-                        .addChatMessage(new ChatComponentTranslation("", new Object[0]));
-                    break;
+                        .addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN +
+                            "You are currently on a pre-release build of ZealotCounter. Please report any bugs that you may come across"));
+                  } else if (latestTag[i].compareTo(currentTag[i]) >= 1) {
+                    Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
+                        EnumChatFormatting.GREEN + "You are currently on version "
+                            + EnumChatFormatting.DARK_GREEN + current + EnumChatFormatting.GREEN
+                            + " and the latest version is " + EnumChatFormatting.DARK_GREEN
+                            + latest + EnumChatFormatting.GREEN
+                            + ". Please update to the latest version of ZealotCounter."));
                   }
+                  Minecraft.getMinecraft().thePlayer
+                      .addChatMessage(new ChatComponentTranslation("", new Object[0]));
+                  break;
                 }
               }
             }
-          } catch (IOException e) {
-            e.printStackTrace();
           }
-        }).start();
-      });
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+      }, 3, TimeUnit.SECONDS);
     }
   }
 

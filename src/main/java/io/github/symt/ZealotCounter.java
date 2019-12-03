@@ -42,15 +42,17 @@ public class ZealotCounter {
 
   private static void scheduleNestCheck() {
     Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
-      List<String> scoreboard = getSidebarLines();
-      boolean found = false;
-      for (String s : scoreboard) {
-        if (StringUtils.stripControlCodes(s).contains("Nest")) {
-          found = true;
-          break;
+      if (loggedIn) {
+        List<String> scoreboard = getSidebarLines();
+        boolean found = false;
+        for (String s : scoreboard) {
+          if (StringUtils.stripControlCodes(s).contains("Dragon's") && StringUtils.stripControlCodes(s).contains("Nest")) {
+            found = true;
+            break;
+          }
         }
+        dragonsNest = found;
       }
-      dragonsNest = found;
     }, 0, 5, TimeUnit.SECONDS);
   }
 
