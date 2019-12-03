@@ -35,9 +35,15 @@ public class ZealotCounterCommand extends CommandBase {
       } else if (args.length == 1 && args[0].equalsIgnoreCase("reset")) {
         ZealotCounter.summoningEyes = 0;
         ZealotCounter.zealotCount = 0;
+        ZealotCounter.sinceLastEye = 0;
         ZealotCounter.saveZealotInfo(0, 0, 0);
         player.addChatMessage(
             new ChatComponentText(EnumChatFormatting.GREEN + "ZealotCounter has been reset"));
+      } else if (args.length == 3 && args[0].equalsIgnoreCase("autosave") && (
+          args[1].equalsIgnoreCase("disable") || args[1].equalsIgnoreCase("enable"))
+          && ZealotCounter.isInteger(args[2])) {
+        ZealotCounter
+            .scheduleFileSave(args[1].equalsIgnoreCase("enable"), Integer.parseInt(args[2]));
       } else if (args.length == 1 && args[0].equalsIgnoreCase("save")) {
         ZealotCounter.saveZealotInfo(ZealotCounter.zealotCount, ZealotCounter.summoningEyes,
             ZealotCounter.sinceLastEye);
@@ -61,6 +67,9 @@ public class ZealotCounterCommand extends CommandBase {
         player.addChatMessage(new ChatComponentText(
             EnumChatFormatting.DARK_PURPLE + "5. " + EnumChatFormatting.LIGHT_PURPLE
                 + "align (left|right)"));
+        player.addChatMessage(new ChatComponentText(
+            EnumChatFormatting.DARK_PURPLE + "6. " + EnumChatFormatting.LIGHT_PURPLE
+                + "autosave (enable|disable) (delay in seconds)"));
         player.addChatMessage(
             new ChatComponentText(EnumChatFormatting.DARK_GRAY + "---------------------------"));
       }

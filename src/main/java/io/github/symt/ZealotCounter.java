@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import net.minecraft.client.Minecraft;
@@ -29,7 +30,7 @@ import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 public class ZealotCounter {
 
   static final String MODID = "ZealotCounter";
-  static final String VERSION = "1.0.2";
+  static final String VERSION = "1.0.3";
   private static final String ZEALOT_PATH = "zealotcounter.dat";
   static boolean loggedIn = false;
   static boolean dragonsNest = false;
@@ -38,7 +39,8 @@ public class ZealotCounter {
   static int zealotCount = 0;
   static int summoningEyes = 0;
   static int sinceLastEye = 0;
-  static int[] guiLocation = new int[2];
+  static int[] guiLocation = new int[]{2, 2};
+  private static ScheduledExecutorService autoSaveExecutor;
 
   private static void scheduleNestCheck() {
     Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
@@ -46,7 +48,8 @@ public class ZealotCounter {
         List<String> scoreboard = getSidebarLines();
         boolean found = false;
         for (String s : scoreboard) {
-          if (StringUtils.stripControlCodes(s).contains("Dragon's") && StringUtils.stripControlCodes(s).contains("Nest")) {
+          if (StringUtils.stripControlCodes(s).contains("Dragon's") && StringUtils
+              .stripControlCodes(s).contains("Nest")) {
             found = true;
             break;
           }
@@ -56,13 +59,18 @@ public class ZealotCounter {
     }, 0, 5, TimeUnit.SECONDS);
   }
 
-  private static void scheduleFileSave() {
-    Executors.newSingleThreadScheduledExecutor()
-        .scheduleAtFixedRate(() -> {
-          if (loggedIn) {
-            saveZealotInfo(zealotCount, summoningEyes, sinceLastEye);
-          }
-        }, 0, 2, TimeUnit.MINUTES);
+  static void scheduleFileSave(boolean toggle, int delay) {
+    if (autoSaveExecutor != null && !autoSaveExecutor.isShutdown()) {
+      autoSaveExecutor.shutdownNow();
+    }
+    if (toggle) {
+      autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
+      autoSaveExecutor.scheduleAtFixedRate(() -> {
+        if (loggedIn) {
+          saveZealotInfo(zealotCount, summoningEyes, sinceLastEye);
+        }
+      }, 0, delay, TimeUnit.SECONDS);
+    }
   }
 
   static void saveZealotInfo(int zealots, int eyes, int last) {
@@ -161,7 +169,7 @@ public class ZealotCounter {
     } else {
       saveZealotInfo(0, 0, 0);
     }
-    scheduleFileSave();
+    scheduleFileSave(true, 120);
     scheduleNestCheck();
   }
 }
