@@ -25,7 +25,8 @@ public class ZealotCounterCommand extends CommandBase {
       if (args.length == 3 && args[0].equalsIgnoreCase("location") && ZealotCounter
           .isInteger(args[1]) && ZealotCounter.isInteger(args[2])) {
         ZealotCounter.guiLocation = new int[]{Integer.parseInt(args[1]), Integer.parseInt(args[2])};
-        ZealotCounter.saveZealotInfo(ZealotCounter.zealotCount, ZealotCounter.summoningEyes);
+        ZealotCounter.saveZealotInfo(ZealotCounter.zealotCount, ZealotCounter.summoningEyes,
+            ZealotCounter.sinceLastEye);
       } else if (args.length == 2 && args[0].equalsIgnoreCase("align")) {
         ZealotCounter.align = (args[1].equalsIgnoreCase("right")) ? "right" : "left";
       } else if (args.length == 2 && args[0].equalsIgnoreCase("color") && ZealotCounter
@@ -34,11 +35,12 @@ public class ZealotCounterCommand extends CommandBase {
       } else if (args.length == 1 && args[0].equalsIgnoreCase("reset")) {
         ZealotCounter.summoningEyes = 0;
         ZealotCounter.zealotCount = 0;
-        ZealotCounter.saveZealotInfo(0, 0);
+        ZealotCounter.saveZealotInfo(0, 0, 0);
         player.addChatMessage(
             new ChatComponentText(EnumChatFormatting.GREEN + "ZealotCounter has been reset"));
       } else if (args.length == 1 && args[0].equalsIgnoreCase("save")) {
-        ZealotCounter.saveZealotInfo(ZealotCounter.zealotCount, ZealotCounter.summoningEyes);
+        ZealotCounter.saveZealotInfo(ZealotCounter.zealotCount, ZealotCounter.summoningEyes,
+            ZealotCounter.sinceLastEye);
         player.addChatMessage(
             new ChatComponentText(EnumChatFormatting.GREEN + "ZealotCounter has been saved"));
       } else {
