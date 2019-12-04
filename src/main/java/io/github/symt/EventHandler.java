@@ -107,7 +107,9 @@ public class EventHandler {
             if (validated.contains("Dragon's Nest")) {
               if (tempSuspend) {
                 tempSuspend = false;
-                EventHandler.perHourTimer.resume();
+                if (EventHandler.perHourTimer.isSuspended() && !EventHandler.perHourTimer.isStopped()) {
+                  EventHandler.perHourTimer.resume();
+                }
               }
               found = true;
               break;
