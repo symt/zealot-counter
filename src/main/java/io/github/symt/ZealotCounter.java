@@ -21,8 +21,10 @@ import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Scoreboard;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
+import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 
 @Mod(modid = ZealotCounter.MODID, version = ZealotCounter.VERSION)
 public class ZealotCounter {
@@ -31,6 +33,7 @@ public class ZealotCounter {
   static final String VERSION = "1.1.0";
   private static final String ZEALOT_PATH = "zealotcounter.dat";
   static boolean loggedIn = false;
+  static boolean usingLabyMod = false;
   static boolean dragonsNest = false;
   static int color = 0x55FFFF;
   static String align = "left";
@@ -153,5 +156,10 @@ public class ZealotCounter {
       saveZealotInfo(0, 0, 0);
     }
     scheduleFileSave(true, 120);
+  }
+
+  @Mod.EventHandler
+  public void postInit(FMLPostInitializationEvent event) {
+    usingLabyMod = Loader.isModLoaded("labymod");
   }
 }
