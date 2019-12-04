@@ -6,6 +6,7 @@ import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.text.DecimalFormat;
+import java.util.List;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import net.minecraft.client.Minecraft;
@@ -16,21 +17,27 @@ import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
+import net.minecraft.util.StringUtils;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
 import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
+import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
+import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONObject;
 
 public class EventHandler {
 
+  static StopWatch perHourTimer = new StopWatch();
   private boolean firstJoin = true;
   private FontRenderer renderer = Minecraft.getMinecraft().fontRendererObj;
   private int attackedEntity = -1;
   private int prevEntity = -1;
+  private int tick = 1;
+  private boolean tempSuspend = false;
 
   @SubscribeEvent(priority = EventPriority.HIGH)
   public void onMobDeath(LivingDeathEvent event) {
@@ -43,6 +50,9 @@ public class EventHandler {
         && prevEntity != event.entity.getEntityId()
         && ZealotCounter.dragonsNest) {
       prevEntity = event.entity.getEntityId();
+      if (perHourTimer.isStarted() && !perHourTimer.isSuspended()) {
+        ZealotCounter.zealotSession++;
+      }
       ZealotCounter.zealotCount++;
       ZealotCounter.sinceLastEye++;
     }
@@ -62,6 +72,61 @@ public class EventHandler {
     if (e.message.getUnformattedText().equals("A special Zealot has spawned nearby!")) {
       ZealotCounter.summoningEyes++;
       ZealotCounter.sinceLastEye = 0;
+    }
+  }
+
+  private String stripString(String s) {
+    char[] nonValidatedString = StringUtils.stripControlCodes(s).toCharArray();
+    StringBuilder validated = new StringBuilder();
+    for (char a : nonValidatedString) {
+      if ((int) a < 127 && (int) a > 20) {
+        validated.append(a);
+      }
+    }
+    return validated.toString();
+  }
+
+  @SubscribeEvent(priority = EventPriority.HIGH)
+  public void onTick(TickEvent.ClientTickEvent e) {
+    if (e.phase == TickEvent.Phase.START) {
+      tick++;
+      if (tick > 99 && Minecraft.getMinecraft() != null
+          && Minecraft.getMinecraft().thePlayer != null) {
+        if (Minecraft.getMinecraft().theWorld.getScoreboard().getObjectiveInDisplaySlot(1)
+            != null) {
+          ZealotCounter.isInSkyblock = (stripString(StringUtils.stripControlCodes(
+              Minecraft.getMinecraft().theWorld.getScoreboard().getObjectiveInDisplaySlot(1)
+                  .getDisplayName())).startsWith("SKYBLOCK") && Minecraft.getMinecraft()
+              .getCurrentServerData().serverIP.toLowerCase().contains("hypixel.net"));
+        }
+        if (ZealotCounter.loggedIn && ZealotCounter.isInSkyblock) {
+          List<String> scoreboard = ZealotCounter.getSidebarLines();
+          boolean found = false;
+          for (String s : scoreboard) {
+            String validated = stripString(s);
+            if (validated.contains("Dragon's Nest")) {
+              if (tempSuspend) {
+                tempSuspend = false;
+                EventHandler.perHourTimer.resume();
+              }
+              found = true;
+              break;
+            }
+          }
+          if (!found && !tempSuspend && EventHandler.perHourTimer.isStarted()
+              && !EventHandler.perHourTimer.isSuspended()) {
+            EventHandler.perHourTimer.suspend();
+            tempSuspend = true;
+          }
+          ZealotCounter.dragonsNest = found;
+        } else if (!ZealotCounter.isInSkyblock) {
+          if (perHourTimer.isStarted() && !perHourTimer.isSuspended()) {
+            perHourTimer.suspend();
+          }
+          ZealotCounter.dragonsNest = false;
+        }
+        tick = 0;
+      }
     }
   }
 
@@ -134,7 +199,7 @@ public class EventHandler {
 
   @SubscribeEvent
   public void renderGameOverlayEvent(RenderGameOverlayEvent event) {
-    if (event.type == RenderGameOverlayEvent.ElementType.TEXT) {
+    if (event.type == RenderGameOverlayEvent.ElementType.TEXT && ZealotCounter.isInSkyblock) {
       String zealotEye =
           "Zealots/Eye: " + ((ZealotCounter.summoningEyes == 0) ? ZealotCounter.zealotCount
               : new DecimalFormat("#.##")
@@ -142,36 +207,46 @@ public class EventHandler {
       String zealot = "Zealots: " + ZealotCounter.zealotCount;
       String eye = "Eyes: " + ZealotCounter.summoningEyes;
       String lastEye = "Zealots since last eye: " + ZealotCounter.sinceLastEye;
+      String zealotsPerHour = "Zealots/Hour: " + new DecimalFormat("#.###")
+          .format(ZealotCounter.zealotSession / (
+              ((perHourTimer.getTime() == 0) ? 1 : perHourTimer.getTime()) / 3600000d));
+      String chanceOfEye =
+          "Current drop rate: " + (1 + Math.floor(ZealotCounter.zealotCount / 420d)) + "/420";
       String longest =
           (lastEye.length() > zealot.length() && lastEye.length() > zealotEye.length()) ? lastEye
               : (zealot.length() > zealotEye.length()) ? zealot : zealotEye;
       if (ZealotCounter.align.equals("right")) {
-        renderer.drawString(zealot, ZealotCounter.guiLocation[0] +
-                renderer.getStringWidth(longest) -
-                renderer.getStringWidth(zealot),
-            ZealotCounter.guiLocation[1], ZealotCounter.color, true);
         renderer.drawString(eye, ZealotCounter.guiLocation[0] +
                 renderer.getStringWidth(longest) -
                 renderer.getStringWidth(eye),
+            ZealotCounter.guiLocation[1], ZealotCounter.color, true);
+        renderer.drawString(zealot, ZealotCounter.guiLocation[0] +
+                renderer.getStringWidth(longest) -
+                renderer.getStringWidth(zealot),
             ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT, ZealotCounter.color, true);
         renderer.drawString(zealotEye, ZealotCounter.guiLocation[0] +
                 renderer.getStringWidth(longest) -
                 renderer.getStringWidth(zealotEye),
             ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT * 2, ZealotCounter.color, true);
+        renderer.drawString(zealotsPerHour, ZealotCounter.guiLocation[0] +
+                renderer.getStringWidth(longest) -
+                renderer.getStringWidth(zealotsPerHour),
+            ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT * 3, ZealotCounter.color, true);
         renderer.drawString(lastEye, ZealotCounter.guiLocation[0] +
                 renderer.getStringWidth(longest) -
                 renderer.getStringWidth(lastEye),
-            ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT * 3, ZealotCounter.color, true);
+            ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT * 4, ZealotCounter.color, true);
       } else {
-        renderer.drawString(zealot, ZealotCounter.guiLocation[0],
+        renderer.drawString(eye, ZealotCounter.guiLocation[0],
             ZealotCounter.guiLocation[1], ZealotCounter.color, true);
-        renderer.drawString(eye,
-            ZealotCounter.guiLocation[0],
+        renderer.drawString(zealot, ZealotCounter.guiLocation[0],
             ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT, ZealotCounter.color, true);
         renderer.drawString(zealotEye, ZealotCounter.guiLocation[0],
             ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT * 2, ZealotCounter.color, true);
-        renderer.drawString(lastEye, ZealotCounter.guiLocation[0],
+        renderer.drawString(zealotsPerHour, ZealotCounter.guiLocation[0],
             ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT * 3, ZealotCounter.color, true);
+        renderer.drawString(lastEye, ZealotCounter.guiLocation[0],
+            ZealotCounter.guiLocation[1] + renderer.FONT_HEIGHT * 4, ZealotCounter.color, true);
       }
     }
   }

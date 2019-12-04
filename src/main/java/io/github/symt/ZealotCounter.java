@@ -19,18 +19,16 @@ import net.minecraft.scoreboard.Score;
 import net.minecraft.scoreboard.ScoreObjective;
 import net.minecraft.scoreboard.ScorePlayerTeam;
 import net.minecraft.scoreboard.Scoreboard;
-import net.minecraft.util.StringUtils;
 import net.minecraftforge.client.ClientCommandHandler;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.Mod.EventHandler;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 
 @Mod(modid = ZealotCounter.MODID, version = ZealotCounter.VERSION)
 public class ZealotCounter {
 
   static final String MODID = "ZealotCounter";
-  static final String VERSION = "1.0.3";
+  static final String VERSION = "1.1.0";
   private static final String ZEALOT_PATH = "zealotcounter.dat";
   static boolean loggedIn = false;
   static boolean dragonsNest = false;
@@ -39,25 +37,10 @@ public class ZealotCounter {
   static int zealotCount = 0;
   static int summoningEyes = 0;
   static int sinceLastEye = 0;
+  static int zealotSession = 0;
+  static boolean isInSkyblock = false;
   static int[] guiLocation = new int[]{2, 2};
   private static ScheduledExecutorService autoSaveExecutor;
-
-  private static void scheduleNestCheck() {
-    Executors.newSingleThreadScheduledExecutor().scheduleAtFixedRate(() -> {
-      if (loggedIn) {
-        List<String> scoreboard = getSidebarLines();
-        boolean found = false;
-        for (String s : scoreboard) {
-          if (StringUtils.stripControlCodes(s).contains("Dragon's") && StringUtils
-              .stripControlCodes(s).contains("Nest")) {
-            found = true;
-            break;
-          }
-        }
-        dragonsNest = found;
-      }
-    }, 0, 5, TimeUnit.SECONDS);
-  }
 
   static void scheduleFileSave(boolean toggle, int delay) {
     if (autoSaveExecutor != null && !autoSaveExecutor.isShutdown()) {
@@ -66,7 +49,7 @@ public class ZealotCounter {
     if (toggle) {
       autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
       autoSaveExecutor.scheduleAtFixedRate(() -> {
-        if (loggedIn) {
+        if (loggedIn && isInSkyblock) {
           saveZealotInfo(zealotCount, summoningEyes, sinceLastEye);
         }
       }, 0, delay, TimeUnit.SECONDS);
@@ -112,7 +95,7 @@ public class ZealotCounter {
     return true;
   }
 
-  private static List<String> getSidebarLines() {
+  static List<String> getSidebarLines() {
     List<String> lines = new ArrayList<>();
     Scoreboard scoreboard = Minecraft.getMinecraft().theWorld.getScoreboard();
     if (scoreboard == null) {
@@ -145,7 +128,7 @@ public class ZealotCounter {
     return lines;
   }
 
-  @EventHandler
+  @Mod.EventHandler
   public void init(FMLInitializationEvent event) {
     ClientCommandHandler.instance.registerCommand(new ZealotCounterCommand());
     MinecraftForge.EVENT_BUS.register(new io.github.symt.EventHandler());
@@ -170,6 +153,5 @@ public class ZealotCounter {
       saveZealotInfo(0, 0, 0);
     }
     scheduleFileSave(true, 120);
-    scheduleNestCheck();
   }
 }
