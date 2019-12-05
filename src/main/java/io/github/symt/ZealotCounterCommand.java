@@ -52,14 +52,16 @@ public class ZealotCounterCommand extends CommandBase {
           case "reset":
             ZealotCounter.zealotSession = 0;
             EventHandler.perHourTimer = new StopWatch();
-            EventHandler.perHourTimer.start();
             player
                 .addChatMessage(
                     new ChatComponentText(
-                        EnumChatFormatting.GREEN + "Session reset successfully."));
+                        EnumChatFormatting.GREEN + "Session reset successfully. Use "
+                            + EnumChatFormatting.DARK_GREEN + "/zc timer start"
+                            + " to restart the timer"));
             break;
           case "stop":
-            if (!EventHandler.perHourTimer.isSuspended()) {
+            if (!EventHandler.perHourTimer.isSuspended() && !EventHandler.perHourTimer
+                .isStopped()) {
               EventHandler.perHourTimer.suspend();
               player
                   .addChatMessage(new ChatComponentText(
@@ -70,7 +72,7 @@ public class ZealotCounterCommand extends CommandBase {
             } else {
               player
                   .addChatMessage(new ChatComponentText(EnumChatFormatting.RED
-                      + "The timer is either started or is already paused. Use "
+                      + "The timer is either stopped or is already paused. Use "
                       + EnumChatFormatting.DARK_RED + "/zc timer start"));
             }
             break;
