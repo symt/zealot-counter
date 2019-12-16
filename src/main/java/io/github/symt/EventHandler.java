@@ -1,5 +1,6 @@
 package io.github.symt;
 
+import io.github.symt.client.gui.Gui;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
@@ -119,6 +120,14 @@ public class EventHandler {
         }
         tick = 0;
       }
+    }
+  }
+
+  @SubscribeEvent
+  public void onAttemptedRender(TickEvent.RenderTickEvent e) {
+    if (ZealotCounter.openGui) {
+      Minecraft.getMinecraft().displayGuiScreen(new Gui());
+      ZealotCounter.openGui = false;
     }
   }
 

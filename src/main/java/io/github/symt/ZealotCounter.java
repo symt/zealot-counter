@@ -35,6 +35,7 @@ public class ZealotCounter {
   static boolean loggedIn = false;
   static boolean usingLabyMod = false;
   static boolean dragonsNest = false;
+  static boolean openGui = false;
   static int color = 0x55FFFF;
   static String align = "left";
   static int zealotCount = 0;
