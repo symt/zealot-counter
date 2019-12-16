@@ -40,3 +40,7 @@ local.properties
 
 # PDT-specific
 .buildpath
+
+out/
+
+.DS_STORE
