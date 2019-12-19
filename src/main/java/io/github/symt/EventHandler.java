@@ -12,6 +12,8 @@ import java.util.concurrent.TimeUnit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.entity.monster.EntityEnderman;
+import net.minecraft.event.ClickEvent;
+import net.minecraft.event.ClickEvent.Action;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.ChatComponentTranslation;
 import net.minecraft.util.EnumChatFormatting;
@@ -162,12 +164,15 @@ public class EventHandler {
                         .addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN +
                             "You are currently on a pre-release build of ZealotCounter. Please report any bugs that you may come across"));
                   } else if (latestTag[i].compareTo(currentTag[i]) >= 1) {
+                    ChatComponentText updateLink = new ChatComponentText(EnumChatFormatting.DARK_GREEN + "" + EnumChatFormatting.BOLD + "[CLICK HERE]");
+                    updateLink.setChatStyle(updateLink.getChatStyle().setChatClickEvent(new ClickEvent(
+                        Action.OPEN_URL, "https://github.com/symt/zealot-counter/releases/latest")));
                     Minecraft.getMinecraft().thePlayer.addChatMessage(new ChatComponentText(
                         EnumChatFormatting.GREEN + "You are currently on version "
                             + EnumChatFormatting.DARK_GREEN + current + EnumChatFormatting.GREEN
                             + " and the latest version is " + EnumChatFormatting.DARK_GREEN
                             + latest + EnumChatFormatting.GREEN
-                            + ". Please update to the latest version of ZealotCounter."));
+                            + ". Please update to the latest version of ZealotCounter. ").appendSibling(updateLink));
                   }
                   Minecraft.getMinecraft().thePlayer
                       .addChatMessage(new ChatComponentTranslation("", new Object[0]));
