@@ -47,7 +47,7 @@ public class EventHandler {
     if (((objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectType.ENTITY
         && objectMouseOver.entityHit.getEntityId() == event.entity.getEntityId())
         || attackedEntity == event.entity.getEntityId())
-        && (event.entity.getName().substring(2).equals("Enderman")
+        && ((event.entity.getName().length() > 2 && event.entity.getName().substring(2).equals("Enderman"))
         || event.entity instanceof EntityEnderman)
         && prevEntity != event.entity.getEntityId()
         && ZealotCounter.dragonsNest) {
@@ -63,7 +63,7 @@ public class EventHandler {
   @SubscribeEvent(priority = EventPriority.HIGH)
   public void onAttack(AttackEntityEvent event) {
     if (event.entity.getEntityId() == Minecraft.getMinecraft().thePlayer.getEntityId() &&
-        (event.target.getName().substring(2).equals("Enderman")
+        ((event.target.getName().length() > 2 && event.target.getName().substring(2).equals("Enderman"))
             || event.target instanceof EntityEnderman) && ZealotCounter.dragonsNest) {
       attackedEntity = event.target.getEntityId();
     }
