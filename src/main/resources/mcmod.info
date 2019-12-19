@@ -2,7 +2,7 @@
 {
   "modid": "ZealotCounter",
   "name": "Zealot Counter",
-  "description": "Mod that counts how many zealots are killed in Hypixel SkyBlock.",
+  "description": "Mod for tracking zealot kills in Hypixel SkyBlock",
   "version": "${version}",
   "mcversion": "${mcversion}",
   "url": "",

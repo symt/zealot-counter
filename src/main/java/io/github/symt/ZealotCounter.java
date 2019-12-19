@@ -30,7 +30,7 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 public class ZealotCounter {
 
   static final String MODID = "ZealotCounter";
-  static final String VERSION = "1.2.0";
+  static final String VERSION = "1.2.1";
   private static final String ZEALOT_PATH = "zealotcounter.dat";
   static boolean loggedIn = false;
   static boolean usingLabyMod = false;
