@@ -45,6 +45,10 @@ public class ZealotCounterCommand extends CommandBase {
       } else if (args.length == 2 && args[0].equalsIgnoreCase("color") && ZealotCounter
           .isInteger(args[1], 16) && args[1].length() == 6) {
         ZealotCounter.color = Integer.parseInt(args[1], 16);
+      } else if (args.length == 1 && args[0].equalsIgnoreCase("toggle")) {
+        ZealotCounter.toggled ^= true;
+        player.addChatMessage(
+            new ChatComponentText(EnumChatFormatting.GREEN + "ZealotCounter has been toggled " + EnumChatFormatting.DARK_GREEN + (ZealotCounter.toggled ? "on" : "off")));
       } else if (args.length == 2 && args[0].equalsIgnoreCase("timer") && (Arrays
           .asList(new String[]{"start", "stop", "reset", "resume"})
           .contains(args[1].toLowerCase()))) {
@@ -140,6 +144,9 @@ public class ZealotCounterCommand extends CommandBase {
         player.addChatMessage(new ChatComponentText(
             EnumChatFormatting.DARK_PURPLE + "7. " + EnumChatFormatting.LIGHT_PURPLE
                 + "timer (start|stop|resume|reset)"));
+        player.addChatMessage(new ChatComponentText(
+            EnumChatFormatting.DARK_PURPLE + "8. " + EnumChatFormatting.LIGHT_PURPLE
+                + "toggle"));
         player.addChatMessage(
             new ChatComponentText(EnumChatFormatting.DARK_GRAY + "---------------------------"));
       }

@@ -30,11 +30,12 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 public class ZealotCounter {
 
   static final String MODID = "ZealotCounter";
-  static final String VERSION = "1.2.1";
+  static final String VERSION = "1.2.2";
   private static final String ZEALOT_PATH = "zealotcounter.dat";
   static boolean loggedIn = false;
   static boolean usingLabyMod = false;
   static boolean dragonsNest = false;
+  static boolean toggled = true;
   static int color = 0x55FFFF;
   static String align = "left";
   static int zealotCount = 0;
