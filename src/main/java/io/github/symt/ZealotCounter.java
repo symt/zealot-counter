@@ -25,57 +25,31 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 
 @Mod(modid = ZealotCounter.MODID, version = ZealotCounter.VERSION)
 public class ZealotCounter {
 
-  static final String MODID = "ZealotCounter";
-  static final String VERSION = "1.2.2";
-  private static final String ZEALOT_PATH = "zealotcounter.dat";
-  static boolean loggedIn = false;
-  static boolean usingLabyMod = false;
-  static boolean dragonsNest = false;
-  static boolean openGui = false;
-  static boolean toggled = true;
-  static int color = 0x55FFFF;
-  static String align = "left";
-  static int zealotCount = 0;
-  static int summoningEyes = 0;
-  static int sinceLastEye = 0;
-  static int zealotSession = 0;
-  static boolean isInSkyblock = false;
-  static int[] guiLocation = new int[]{2, 2};
-  private static ScheduledExecutorService autoSaveExecutor;
-
-  static void scheduleFileSave(boolean toggle, int delay) {
-    if (autoSaveExecutor != null && !autoSaveExecutor.isShutdown()) {
-      autoSaveExecutor.shutdownNow();
-    }
-    if (toggle) {
-      autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
-      autoSaveExecutor.scheduleAtFixedRate(() -> {
-        if (loggedIn && isInSkyblock) {
-          saveZealotInfo(zealotCount, summoningEyes, sinceLastEye);
-        }
-      }, 0, delay, TimeUnit.SECONDS);
-    }
-  }
-
-  static void saveZealotInfo(int zealots, int eyes, int last) {
-    new Thread(() -> {
-      File zealot_file = new File(ZEALOT_PATH);
-      try {
-        FileWriter fw = new FileWriter(zealot_file, false);
-        fw.write(
-            zealots + "," + eyes + "," + last + "," + guiLocation[0] + "," + guiLocation[1] + ","
-                + Integer
-                .toHexString(color) + "," + align);
-        fw.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }).start();
-  }
+  public static final String MODID = "ZealotCounter";
+  public static final String VERSION = "1.2.3";
+  private static final String ZEALOT_PATH = "zealotcounter.json";
+  public static ZealotCounter instance;
+  boolean loggedIn = false;
+  boolean usingLabyMod = false;
+  boolean dragonsNest = false;
+  boolean toggled = true;
+  boolean openGui = false;
+  int color = 0x55FFFF;
+  String align = "left";
+  int zealotCount = 0;
+  int summoningEyes = 0;
+  int sinceLastEye = 0;
+  int zealotSession = 0;
+  boolean isInSkyblock = false;
+  int[] guiLocation = new int[]{2, 2};
+  EventHandler eventHandler;
+  private ScheduledExecutorService autoSaveExecutor;
 
   static boolean isInteger(String s) {
     return isInteger(s, 10);
@@ -100,7 +74,37 @@ public class ZealotCounter {
     return true;
   }
 
-  static List<String> getSidebarLines() {
+  void scheduleFileSave(boolean toggle, int delay) {
+    if (autoSaveExecutor != null && !autoSaveExecutor.isShutdown()) {
+      autoSaveExecutor.shutdownNow();
+    }
+    if (toggle) {
+      autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
+      autoSaveExecutor.scheduleAtFixedRate(() -> {
+        if (loggedIn && isInSkyblock) {
+          saveZealotInfo(zealotCount, summoningEyes, sinceLastEye);
+        }
+      }, 0, delay, TimeUnit.SECONDS);
+    }
+  }
+
+  void saveZealotInfo(int zealots, int eyes, int last) {
+    new Thread(() -> {
+      File zealot_file = new File(ZEALOT_PATH);
+      try {
+        FileWriter fw = new FileWriter(zealot_file, false);
+        fw.write(
+            zealots + "," + eyes + "," + last + "," + guiLocation[0] + "," + guiLocation[1] + ","
+                + Integer
+                .toHexString(color) + "," + align);
+        fw.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }).start();
+  }
+
+  List<String> getSidebarLines() {
     List<String> lines = new ArrayList<>();
     Scoreboard scoreboard = Minecraft.getMinecraft().theWorld.getScoreboard();
     if (scoreboard == null) {
@@ -135,27 +139,17 @@ public class ZealotCounter {
 
   @Mod.EventHandler
   public void init(FMLInitializationEvent event) {
-    ClientCommandHandler.instance.registerCommand(new ZealotCounterCommand());
-    MinecraftForge.EVENT_BUS.register(new io.github.symt.EventHandler());
+    instance = this;
+    eventHandler = new EventHandler(this);
+    ClientCommandHandler.instance.registerCommand(new ZealotCounterCommand(this));
+    MinecraftForge.EVENT_BUS.register(eventHandler);
     if (new File(ZEALOT_PATH).isFile()) {
       try {
-        String[] input = new BufferedReader(new FileReader(ZEALOT_PATH)).readLine().split(",");
-        if (input.length == 7 && isInteger(input[0]) && isInteger(input[1]) && isInteger(input[2])
-            && isInteger(input[3]) && isInteger(input[4]) && isInteger(input[5], 16)) {
-          zealotCount = Integer.parseInt(input[0]);
-          summoningEyes = Integer.parseInt(input[1]);
-          sinceLastEye = Integer.parseInt(input[2]);
-          guiLocation = new int[]{Integer.parseInt(input[3]), Integer.parseInt(input[4])};
-          color = Integer.parseInt(input[5], 16);
-          align = input[6];
-        } else {
-          saveZealotInfo(0, 0, 0);
-        }
+        JSONObject data = new JSONObject(
+            IOUtils.toString(new BufferedReader(new FileReader(ZEALOT_PATH))));
       } catch (IOException e) {
         e.printStackTrace();
       }
-    } else {
-      saveZealotInfo(0, 0, 0);
     }
     scheduleFileSave(true, 120);
   }

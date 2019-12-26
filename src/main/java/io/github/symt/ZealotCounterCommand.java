@@ -10,6 +10,12 @@ import net.minecraft.util.EnumChatFormatting;
 
 public class ZealotCounterCommand extends CommandBase {
 
+  ZealotCounter zealotCounter;
+
+  public ZealotCounterCommand(ZealotCounter zealotCounter) {
+    this.zealotCounter = zealotCounter;
+  }
+
   @Override
   public List getCommandAliases() {
     return new ArrayList<String>() {
@@ -32,8 +38,8 @@ public class ZealotCounterCommand extends CommandBase {
   @Override
   public void processCommand(ICommandSender ics, String[] args) {
     if (ics instanceof EntityPlayer /* && ZealotCounter.isInSkyblock */) {
-      ZealotCounter.openGui = true;
-    } else if (!ZealotCounter.isInSkyblock) {
+      zealotCounter.openGui = true;
+    } else if (!zealotCounter.isInSkyblock) {
       ics.addChatMessage(
           new ChatComponentText(
               EnumChatFormatting.RED + "Please join SkyBlock to use this command."));
