@@ -23,7 +23,6 @@ import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.util.StringUtils;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
-import net.minecraftforge.client.event.sound.PlaySoundEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -35,7 +34,7 @@ import org.json.JSONObject;
 
 public class EventHandler {
 
-  StopWatch perHourTimer = new StopWatch();
+  public StopWatch perHourTimer = new StopWatch();
   private boolean firstJoin = true;
   private FontRenderer renderer = Minecraft.getMinecraft().fontRendererObj;
   private int attackedEntity = -1;
@@ -46,11 +45,6 @@ public class EventHandler {
 
   EventHandler(ZealotCounter zealotCounter) {
     this.zealotCounter = zealotCounter;
-  }
-
-  @SubscribeEvent
-  public void playSoundEvent(PlaySoundEvent event) {
-    System.out.println(event.sound.getPitch());
   }
 
   @SubscribeEvent
@@ -85,12 +79,15 @@ public class EventHandler {
 
   @SubscribeEvent(priority = EventPriority.HIGHEST)
   public void onChatMessageReceived(ClientChatReceivedEvent e) {
-    if (stripString(e.message.getUnformattedText()).equals("A special Zealot has spawned nearby!")) {
+    if (stripString(e.message.getUnformattedText())
+        .equals("A special Zealot has spawned nearby!")) {
       zealotCounter.summoningEyes++;
       zealotCounter.sinceLastEye = 0;
-    } else if (stripString(e.message.getUnformattedText()).startsWith("You are playing on profile: ")) {
+    } else if (stripString(e.message.getUnformattedText())
+        .startsWith("You are playing on profile: ")) {
       zealotCounter.currentSetup =
-          Minecraft.getMinecraft().thePlayer.getUniqueID() + " " + stripString(e.message.getUnformattedText())
+          Minecraft.getMinecraft().thePlayer.getUniqueID() + " " + stripString(
+              e.message.getUnformattedText())
               .split(" ")[5];
     }
   }
@@ -239,7 +236,7 @@ public class EventHandler {
   @SubscribeEvent
   public void renderLabymodOverlay(RenderGameOverlayEvent event) {
     if (event.type == null && isUsingLabymod() && zealotCounter.isInSkyblock) {
-      renderStats();
+      renderStats(false);
     }
   }
 
@@ -248,7 +245,7 @@ public class EventHandler {
     if ((event.type == RenderGameOverlayEvent.ElementType.EXPERIENCE
         || event.type == RenderGameOverlayEvent.ElementType.JUMPBAR) && zealotCounter.isInSkyblock
         && !isUsingLabymod()) {
-      renderStats();
+      renderStats(false);
     }
   }
 
@@ -267,9 +264,9 @@ public class EventHandler {
     return zealotCounter.usingLabyMod;
   }
 
-  private void renderStats() {
-    if (zealotCounter.toggled && zealotCounter.dragonsNest && !zealotCounter.currentSetup
-        .equals("")) {
+  public void renderStats(boolean forcedRender) {
+    if (forcedRender || (zealotCounter.toggled && zealotCounter.dragonsNest && !zealotCounter.currentSetup
+        .equals(""))) {
       String zealotEye =
           "Zealots/Eye: " + ((zealotCounter.summoningEyes == 0) ? zealotCounter.zealotCount
               : new DecimalFormat("#.##")

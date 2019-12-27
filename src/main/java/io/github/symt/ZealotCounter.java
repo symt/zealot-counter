@@ -41,17 +41,17 @@ public class ZealotCounter {
   public int summoningEyes = 0;
   public int sinceLastEye = 0;
   public boolean toggled = true;
+  public EventHandler eventHandler;
+  public String align = "left";
+  public int[] guiLocation = new int[]{2, 2};
+  public int zealotSession = 0;
   boolean loggedIn = false;
   boolean usingLabyMod = false;
   boolean dragonsNest = false;
   int color = 0x55FFFF;
-  String align = "left";
   String lastSetup = "";
-  int zealotSession = 0;
   JSONObject zealotData;
   boolean isInSkyblock = false;
-  int[] guiLocation = new int[]{2, 2};
-  EventHandler eventHandler;
   private ScheduledExecutorService autoSaveExecutor;
 
   static boolean isInteger(String s) {
@@ -84,8 +84,10 @@ public class ZealotCounter {
     if (toggle) {
       autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
       autoSaveExecutor.scheduleAtFixedRate(() -> {
-        if (loggedIn) {
-          saveZealotInfo();
+        if (loggedIn && !currentSetup.equals("")) {
+          saveSetup(currentSetup.split(" ")[0],
+              currentSetup.split(" ")[1], zealotCount,
+              summoningEyes, sinceLastEye);
         }
       }, 0, delay, TimeUnit.SECONDS);
     }
@@ -105,8 +107,8 @@ public class ZealotCounter {
       summoningEyes = currentProfile.getInt("summoningEyes");
       sinceLastEye = currentProfile.getInt("sinceLastEye");
     } else {
-      saveSetup(currentSetup.split(" ")[0], currentSetup.split(" ")[1], 0, 0,
-          0);
+      saveSetup(currentSetup.split(" ")[0], currentSetup.split(" ")[1], zealotCount, summoningEyes,
+          sinceLastEye);
     }
   }
 
@@ -127,7 +129,7 @@ public class ZealotCounter {
     saveZealotInfo();
   }
 
-  public void saveZealotInfo() {
+  private void saveZealotInfo() {
     new Thread(() -> {
       File zealot_file = new File(ZEALOT_PATH);
       try {
@@ -194,6 +196,26 @@ public class ZealotCounter {
                     .toString())
         };
         color = Integer.parseInt(zealotData.getJSONObject("player").getString("color"), 16);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    } else if (new File("zealotcounter.dat").isFile()) {
+      try {
+        String[] input = new BufferedReader(new FileReader("zealotcounter.dat")).readLine()
+            .split(",");
+        zealotData = new JSONObject("{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2]}}");
+        if (input.length == 7 && isInteger(input[0]) && isInteger(input[1]) && isInteger(input[2])
+            && isInteger(input[3]) && isInteger(input[4]) && isInteger(input[5], 16)) {
+          zealotCount = Integer.parseInt(input[0]);
+          summoningEyes = Integer.parseInt(input[1]);
+          sinceLastEye = Integer.parseInt(input[2]);
+          guiLocation = new int[]{Integer.parseInt(input[3]), Integer.parseInt(input[4])};
+          color = Integer.parseInt(input[5], 16);
+          align = input[6];
+        } else {
+          saveZealotInfo();
+        }
+        new File("zealotcounter.dat").deleteOnExit();
       } catch (IOException e) {
         e.printStackTrace();
       }
