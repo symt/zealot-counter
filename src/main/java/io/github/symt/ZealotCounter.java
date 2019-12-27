@@ -25,55 +25,34 @@ import net.minecraftforge.fml.common.Loader;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.common.event.FMLInitializationEvent;
 import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
+import org.apache.commons.io.IOUtils;
+import org.json.JSONObject;
 
 @Mod(modid = ZealotCounter.MODID, version = ZealotCounter.VERSION)
 public class ZealotCounter {
 
-  static final String MODID = "ZealotCounter";
-  static final String VERSION = "1.2.0";
-  private static final String ZEALOT_PATH = "zealotcounter.dat";
-  static boolean loggedIn = false;
-  static boolean usingLabyMod = false;
-  static boolean dragonsNest = false;
-  static int color = 0x55FFFF;
-  static String align = "left";
-  static int zealotCount = 0;
-  static int summoningEyes = 0;
-  static int sinceLastEye = 0;
-  static int zealotSession = 0;
-  static boolean isInSkyblock = false;
-  static int[] guiLocation = new int[]{2, 2};
-  private static ScheduledExecutorService autoSaveExecutor;
-
-  static void scheduleFileSave(boolean toggle, int delay) {
-    if (autoSaveExecutor != null && !autoSaveExecutor.isShutdown()) {
-      autoSaveExecutor.shutdownNow();
-    }
-    if (toggle) {
-      autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
-      autoSaveExecutor.scheduleAtFixedRate(() -> {
-        if (loggedIn && isInSkyblock) {
-          saveZealotInfo(zealotCount, summoningEyes, sinceLastEye);
-        }
-      }, 0, delay, TimeUnit.SECONDS);
-    }
-  }
-
-  static void saveZealotInfo(int zealots, int eyes, int last) {
-    new Thread(() -> {
-      File zealot_file = new File(ZEALOT_PATH);
-      try {
-        FileWriter fw = new FileWriter(zealot_file, false);
-        fw.write(
-            zealots + "," + eyes + "," + last + "," + guiLocation[0] + "," + guiLocation[1] + ","
-                + Integer
-                .toHexString(color) + "," + align);
-        fw.close();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-    }).start();
-  }
+  public static final String MODID = "ZealotCounter";
+  public static final String VERSION = "1.3.0";
+  private static final String ZEALOT_PATH = "zealotcounter.json";
+  public static ZealotCounter instance;
+  public String openGui = "";
+  public String currentSetup = "";
+  public int zealotCount = 0;
+  public int summoningEyes = 0;
+  public int sinceLastEye = 0;
+  public boolean toggled = true;
+  public EventHandler eventHandler;
+  public String align = "left";
+  public int[] guiLocation = new int[]{2, 2};
+  public int zealotSession = 0;
+  boolean loggedIn = false;
+  boolean usingLabyMod = false;
+  boolean dragonsNest = false;
+  int color = 0x55FFFF;
+  String lastSetup = "";
+  JSONObject zealotData;
+  boolean isInSkyblock = false;
+  private ScheduledExecutorService autoSaveExecutor;
 
   static boolean isInteger(String s) {
     return isInteger(s, 10);
@@ -98,7 +77,74 @@ public class ZealotCounter {
     return true;
   }
 
-  static List<String> getSidebarLines() {
+  void scheduleFileSave(boolean toggle, int delay) {
+    if (autoSaveExecutor != null && !autoSaveExecutor.isShutdown()) {
+      autoSaveExecutor.shutdownNow();
+    }
+    if (toggle) {
+      autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
+      autoSaveExecutor.scheduleAtFixedRate(() -> {
+        if (loggedIn && !currentSetup.equals("")) {
+          saveSetup(currentSetup.split(" ")[0],
+              currentSetup.split(" ")[1], zealotCount,
+              summoningEyes, sinceLastEye);
+        }
+      }, 0, delay, TimeUnit.SECONDS);
+    }
+  }
+
+  public void updateInfoWithCurrentSetup(String uuid, String profile) {
+    if (!lastSetup.equals("")) {
+      saveSetup(lastSetup.split(" ")[0], lastSetup.split(" ")[1], zealotCount, summoningEyes,
+          sinceLastEye);
+    }
+    lastSetup = currentSetup;
+    if (!zealotData.getJSONObject("player").isNull(uuid)
+        && !zealotData.getJSONObject("player").getJSONObject(uuid).isNull(profile)) {
+      JSONObject currentProfile = zealotData.getJSONObject("player").getJSONObject(uuid)
+          .getJSONObject(profile);
+      zealotCount = currentProfile.getInt("zealotCount");
+      summoningEyes = currentProfile.getInt("summoningEyes");
+      sinceLastEye = currentProfile.getInt("sinceLastEye");
+    } else {
+      saveSetup(currentSetup.split(" ")[0], currentSetup.split(" ")[1], zealotCount, summoningEyes,
+          sinceLastEye);
+    }
+  }
+
+  public void saveSetup(String uuid, String profile, int zealotCount, int summoningEyes,
+      int sinceLastEye) {
+    if (zealotData.getJSONObject("player").isNull(uuid)) {
+      zealotData.getJSONObject("player").put(uuid, new JSONObject("{}"));
+    }
+    if (zealotData.getJSONObject("player").getJSONObject(uuid).isNull(profile)) {
+      zealotData.getJSONObject("player").getJSONObject(uuid).put(profile, new JSONObject("{}"));
+    }
+    zealotData.getJSONObject("player").getJSONObject(uuid).getJSONObject(profile)
+        .put("zealotCount", zealotCount);
+    zealotData.getJSONObject("player").getJSONObject(uuid).getJSONObject(profile)
+        .put("summoningEyes", summoningEyes);
+    zealotData.getJSONObject("player").getJSONObject(uuid).getJSONObject(profile)
+        .put("sinceLastEye", sinceLastEye);
+    saveZealotInfo();
+  }
+
+  private void saveZealotInfo() {
+    new Thread(() -> {
+      File zealot_file = new File(ZEALOT_PATH);
+      try {
+        FileWriter fw = new FileWriter(zealot_file, false);
+        zealotData.getJSONObject("player").put("color", Integer.toHexString(color));
+        zealotData.getJSONObject("player").put("location", guiLocation);
+        fw.write(zealotData.toString());
+        fw.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    }).start();
+  }
+
+  List<String> getSidebarLines() {
     List<String> lines = new ArrayList<>();
     Scoreboard scoreboard = Minecraft.getMinecraft().theWorld.getScoreboard();
     if (scoreboard == null) {
@@ -133,11 +179,31 @@ public class ZealotCounter {
 
   @Mod.EventHandler
   public void init(FMLInitializationEvent event) {
-    ClientCommandHandler.instance.registerCommand(new ZealotCounterCommand());
-    MinecraftForge.EVENT_BUS.register(new io.github.symt.EventHandler());
+    instance = this;
+    eventHandler = new EventHandler(this);
+    ClientCommandHandler.instance.registerCommand(new ZealotCounterCommand(this));
+    MinecraftForge.EVENT_BUS.register(eventHandler);
     if (new File(ZEALOT_PATH).isFile()) {
       try {
-        String[] input = new BufferedReader(new FileReader(ZEALOT_PATH)).readLine().split(",");
+        zealotData = new JSONObject(
+            IOUtils.toString(new BufferedReader(new FileReader(ZEALOT_PATH))));
+        guiLocation = new int[]{
+            Integer.parseInt(
+                zealotData.getJSONObject("player").getJSONArray("location").toList().toArray()[0]
+                    .toString()),
+            Integer.parseInt(
+                zealotData.getJSONObject("player").getJSONArray("location").toList().toArray()[1]
+                    .toString())
+        };
+        color = Integer.parseInt(zealotData.getJSONObject("player").getString("color"), 16);
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+    } else if (new File("zealotcounter.dat").isFile()) {
+      try {
+        String[] input = new BufferedReader(new FileReader("zealotcounter.dat")).readLine()
+            .split(",");
+        zealotData = new JSONObject("{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2]}}");
         if (input.length == 7 && isInteger(input[0]) && isInteger(input[1]) && isInteger(input[2])
             && isInteger(input[3]) && isInteger(input[4]) && isInteger(input[5], 16)) {
           zealotCount = Integer.parseInt(input[0]);
@@ -147,13 +213,15 @@ public class ZealotCounter {
           color = Integer.parseInt(input[5], 16);
           align = input[6];
         } else {
-          saveZealotInfo(0, 0, 0);
+          saveZealotInfo();
         }
+        new File("zealotcounter.dat").deleteOnExit();
       } catch (IOException e) {
         e.printStackTrace();
       }
     } else {
-      saveZealotInfo(0, 0, 0);
+      zealotData = new JSONObject("{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2]}}");
+      saveZealotInfo();
     }
     scheduleFileSave(true, 120);
   }

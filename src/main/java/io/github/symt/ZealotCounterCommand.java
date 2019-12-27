@@ -12,8 +12,14 @@ import org.apache.commons.lang3.time.StopWatch;
 
 public class ZealotCounterCommand extends CommandBase {
 
+  private ZealotCounter zealotCounter;
+
+  ZealotCounterCommand(ZealotCounter zealotCounter) {
+    this.zealotCounter = zealotCounter;
+  }
+
   @Override
-  public List getCommandAliases() {
+  public List<String> getCommandAliases() {
     return new ArrayList<String>() {
       {
         add("zc");
@@ -33,25 +39,15 @@ public class ZealotCounterCommand extends CommandBase {
 
   @Override
   public void processCommand(ICommandSender ics, String[] args) {
-    if (ics instanceof EntityPlayer && ZealotCounter.isInSkyblock) {
-      final EntityPlayer player = (EntityPlayer) ics;
-      if (args.length == 3 && args[0].equalsIgnoreCase("location") && ZealotCounter
-          .isInteger(args[1]) && ZealotCounter.isInteger(args[2])) {
-        ZealotCounter.guiLocation = new int[]{Integer.parseInt(args[1]), Integer.parseInt(args[2])};
-        ZealotCounter.saveZealotInfo(ZealotCounter.zealotCount, ZealotCounter.summoningEyes,
-            ZealotCounter.sinceLastEye);
-      } else if (args.length == 2 && args[0].equalsIgnoreCase("align")) {
-        ZealotCounter.align = (args[1].equalsIgnoreCase("right")) ? "right" : "left";
-      } else if (args.length == 2 && args[0].equalsIgnoreCase("color") && ZealotCounter
-          .isInteger(args[1], 16) && args[1].length() == 6) {
-        ZealotCounter.color = Integer.parseInt(args[1], 16);
-      } else if (args.length == 2 && args[0].equalsIgnoreCase("timer") && (Arrays
+    if (ics instanceof EntityPlayer && zealotCounter.isInSkyblock) {
+      EntityPlayer player = (EntityPlayer)ics;
+      if (args.length == 2 && args[0].equalsIgnoreCase("timer") && (Arrays
           .asList(new String[]{"start", "stop", "reset", "resume"})
           .contains(args[1].toLowerCase()))) {
         switch (args[1].toLowerCase()) {
           case "reset":
-            ZealotCounter.zealotSession = 0;
-            EventHandler.perHourTimer = new StopWatch();
+            zealotCounter.zealotSession = 0;
+            zealotCounter.eventHandler.perHourTimer = new StopWatch();
             player
                 .addChatMessage(
                     new ChatComponentText(
@@ -60,9 +56,9 @@ public class ZealotCounterCommand extends CommandBase {
                             + EnumChatFormatting.GREEN + " to restart the timer"));
             break;
           case "stop":
-            if (!EventHandler.perHourTimer.isSuspended() && !EventHandler.perHourTimer
+            if (!zealotCounter.eventHandler.perHourTimer.isSuspended() && !zealotCounter.eventHandler.perHourTimer
                 .isStopped()) {
-              EventHandler.perHourTimer.suspend();
+              zealotCounter.eventHandler.perHourTimer.suspend();
               player
                   .addChatMessage(new ChatComponentText(
                       EnumChatFormatting.GREEN + "Session paused. Use "
@@ -78,12 +74,12 @@ public class ZealotCounterCommand extends CommandBase {
             break;
           case "start":
           case "resume":
-            if (EventHandler.perHourTimer.isSuspended()) {
-              EventHandler.perHourTimer.resume();
+            if (zealotCounter.eventHandler.perHourTimer.isSuspended()) {
+              zealotCounter.eventHandler.perHourTimer.resume();
               player.addChatMessage(
                   new ChatComponentText(EnumChatFormatting.GREEN + "Session resumed."));
-            } else if (EventHandler.perHourTimer.isStopped()) {
-              EventHandler.perHourTimer.start();
+            } else if (zealotCounter.eventHandler.perHourTimer.isStopped()) {
+              zealotCounter.eventHandler.perHourTimer.start();
               player.addChatMessage(
                   new ChatComponentText(EnumChatFormatting.GREEN + "Session started."));
             } else {
@@ -98,52 +94,13 @@ public class ZealotCounterCommand extends CommandBase {
                     + EnumChatFormatting.DARK_RED + "/zc"));
             break;
         }
-
-      } else if (args.length == 1 && args[0].equalsIgnoreCase("reset")) {
-        ZealotCounter.summoningEyes = 0;
-        ZealotCounter.zealotCount = 0;
-        ZealotCounter.sinceLastEye = 0;
-        ZealotCounter.saveZealotInfo(0, 0, 0);
-        player.addChatMessage(
-            new ChatComponentText(EnumChatFormatting.GREEN + "ZealotCounter has been reset"));
-      } else if (args.length == 3 && args[0].equalsIgnoreCase("autosave") && (
-          args[1].equalsIgnoreCase("disable") || args[1].equalsIgnoreCase("enable"))
-          && ZealotCounter.isInteger(args[2])) {
-        ZealotCounter
-            .scheduleFileSave(args[1].equalsIgnoreCase("enable"), Integer.parseInt(args[2]));
-      } else if (args.length == 1 && args[0].equalsIgnoreCase("save")) {
-        ZealotCounter.saveZealotInfo(ZealotCounter.zealotCount, ZealotCounter.summoningEyes,
-            ZealotCounter.sinceLastEye);
-        player.addChatMessage(
-            new ChatComponentText(EnumChatFormatting.GREEN + "ZealotCounter has been saved"));
+      } else if (args.length == 2 && args[0].equalsIgnoreCase("color") && ZealotCounter
+          .isInteger(args[1], 16) && args[1].length() == 6) {
+        zealotCounter.color = Integer.parseInt(args[1], 16);
       } else {
-        player.addChatMessage(
-            new ChatComponentText(EnumChatFormatting.DARK_GRAY + "---------------------------"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.BLUE + "/zealotcounter [subcommand] [arguments]"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.DARK_PURPLE + "1. " + EnumChatFormatting.LIGHT_PURPLE + "save"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.DARK_PURPLE + "2. " + EnumChatFormatting.LIGHT_PURPLE + "reset"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.DARK_PURPLE + "3. " + EnumChatFormatting.LIGHT_PURPLE
-                + "location (x) (y)"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.DARK_PURPLE + "4. " + EnumChatFormatting.LIGHT_PURPLE
-                + "color (hex color)"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.DARK_PURPLE + "5. " + EnumChatFormatting.LIGHT_PURPLE
-                + "align (left|right)"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.DARK_PURPLE + "6. " + EnumChatFormatting.LIGHT_PURPLE
-                + "autosave (enable|disable) (delay in seconds)"));
-        player.addChatMessage(new ChatComponentText(
-            EnumChatFormatting.DARK_PURPLE + "7. " + EnumChatFormatting.LIGHT_PURPLE
-                + "timer (start|stop|resume|reset)"));
-        player.addChatMessage(
-            new ChatComponentText(EnumChatFormatting.DARK_GRAY + "---------------------------"));
+        zealotCounter.openGui = "normal";
       }
-    } else if (!ZealotCounter.isInSkyblock) {
+    } else if (!zealotCounter.isInSkyblock) {
       ics.addChatMessage(
           new ChatComponentText(
               EnumChatFormatting.RED + "Please join SkyBlock to use this command."));
