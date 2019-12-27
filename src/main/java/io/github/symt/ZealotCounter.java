@@ -32,20 +32,23 @@ import org.json.JSONObject;
 public class ZealotCounter {
 
   public static final String MODID = "ZealotCounter";
-  public static final String VERSION = "1.2.3";
+  public static final String VERSION = "1.3.0";
   private static final String ZEALOT_PATH = "zealotcounter.json";
   public static ZealotCounter instance;
+  public String openGui = "";
+  public String currentSetup = "";
+  public int zealotCount = 0;
+  public int summoningEyes = 0;
+  public int sinceLastEye = 0;
+  public boolean toggled = true;
   boolean loggedIn = false;
   boolean usingLabyMod = false;
   boolean dragonsNest = false;
-  boolean toggled = true;
-  boolean openGui = false;
   int color = 0x55FFFF;
   String align = "left";
-  int zealotCount = 0;
-  int summoningEyes = 0;
-  int sinceLastEye = 0;
+  String lastSetup = "";
   int zealotSession = 0;
+  JSONObject zealotData;
   boolean isInSkyblock = false;
   int[] guiLocation = new int[]{2, 2};
   EventHandler eventHandler;
@@ -81,22 +84,57 @@ public class ZealotCounter {
     if (toggle) {
       autoSaveExecutor = Executors.newSingleThreadScheduledExecutor();
       autoSaveExecutor.scheduleAtFixedRate(() -> {
-        if (loggedIn && isInSkyblock) {
-          saveZealotInfo(zealotCount, summoningEyes, sinceLastEye);
+        if (loggedIn) {
+          saveZealotInfo();
         }
       }, 0, delay, TimeUnit.SECONDS);
     }
   }
 
-  void saveZealotInfo(int zealots, int eyes, int last) {
+  public void updateInfoWithCurrentSetup(String uuid, String profile) {
+    if (!lastSetup.equals("")) {
+      saveSetup(lastSetup.split(" ")[0], lastSetup.split(" ")[1], zealotCount, summoningEyes,
+          sinceLastEye);
+    }
+    lastSetup = currentSetup;
+    if (!zealotData.getJSONObject("player").isNull(uuid)
+        && !zealotData.getJSONObject("player").getJSONObject(uuid).isNull(profile)) {
+      JSONObject currentProfile = zealotData.getJSONObject("player").getJSONObject(uuid)
+          .getJSONObject(profile);
+      zealotCount = currentProfile.getInt("zealotCount");
+      summoningEyes = currentProfile.getInt("summoningEyes");
+      sinceLastEye = currentProfile.getInt("sinceLastEye");
+    } else {
+      saveSetup(currentSetup.split(" ")[0], currentSetup.split(" ")[1], 0, 0,
+          0);
+    }
+  }
+
+  public void saveSetup(String uuid, String profile, int zealotCount, int summoningEyes,
+      int sinceLastEye) {
+    if (zealotData.getJSONObject("player").isNull(uuid)) {
+      zealotData.getJSONObject("player").put(uuid, new JSONObject("{}"));
+    }
+    if (zealotData.getJSONObject("player").getJSONObject(uuid).isNull(profile)) {
+      zealotData.getJSONObject("player").getJSONObject(uuid).put(profile, new JSONObject("{}"));
+    }
+    zealotData.getJSONObject("player").getJSONObject(uuid).getJSONObject(profile)
+        .put("zealotCount", zealotCount);
+    zealotData.getJSONObject("player").getJSONObject(uuid).getJSONObject(profile)
+        .put("summoningEyes", summoningEyes);
+    zealotData.getJSONObject("player").getJSONObject(uuid).getJSONObject(profile)
+        .put("sinceLastEye", sinceLastEye);
+    saveZealotInfo();
+  }
+
+  public void saveZealotInfo() {
     new Thread(() -> {
       File zealot_file = new File(ZEALOT_PATH);
       try {
         FileWriter fw = new FileWriter(zealot_file, false);
-        fw.write(
-            zealots + "," + eyes + "," + last + "," + guiLocation[0] + "," + guiLocation[1] + ","
-                + Integer
-                .toHexString(color) + "," + align);
+        zealotData.getJSONObject("player").put("color", Integer.toHexString(color));
+        zealotData.getJSONObject("player").put("location", guiLocation);
+        fw.write(zealotData.toString());
         fw.close();
       } catch (IOException e) {
         e.printStackTrace();
@@ -145,11 +183,23 @@ public class ZealotCounter {
     MinecraftForge.EVENT_BUS.register(eventHandler);
     if (new File(ZEALOT_PATH).isFile()) {
       try {
-        JSONObject data = new JSONObject(
+        zealotData = new JSONObject(
             IOUtils.toString(new BufferedReader(new FileReader(ZEALOT_PATH))));
+        guiLocation = new int[]{
+            Integer.parseInt(
+                zealotData.getJSONObject("player").getJSONArray("location").toList().toArray()[0]
+                    .toString()),
+            Integer.parseInt(
+                zealotData.getJSONObject("player").getJSONArray("location").toList().toArray()[1]
+                    .toString())
+        };
+        color = Integer.parseInt(zealotData.getJSONObject("player").getString("color"), 16);
       } catch (IOException e) {
         e.printStackTrace();
       }
+    } else {
+      zealotData = new JSONObject("{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2]}}");
+      saveZealotInfo();
     }
     scheduleFileSave(true, 120);
   }

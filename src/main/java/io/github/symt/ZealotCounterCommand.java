@@ -38,7 +38,7 @@ public class ZealotCounterCommand extends CommandBase {
   @Override
   public void processCommand(ICommandSender ics, String[] args) {
     if (ics instanceof EntityPlayer /* && ZealotCounter.isInSkyblock */) {
-      zealotCounter.openGui = true;
+      zealotCounter.openGui = "normal";
     } else if (!zealotCounter.isInSkyblock) {
       ics.addChatMessage(
           new ChatComponentText(

@@ -23,6 +23,7 @@ import net.minecraft.util.MovingObjectPosition.MovingObjectType;
 import net.minecraft.util.StringUtils;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
+import net.minecraftforge.client.event.sound.PlaySoundEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.fml.common.eventhandler.EventPriority;
@@ -47,7 +48,12 @@ public class EventHandler {
     this.zealotCounter = zealotCounter;
   }
 
-  @SubscribeEvent(priority = EventPriority.HIGH)
+  @SubscribeEvent
+  public void playSoundEvent(PlaySoundEvent event) {
+    System.out.println(event.sound.getPitch());
+  }
+
+  @SubscribeEvent
   public void onMobDeath(LivingDeathEvent event) {
     MovingObjectPosition objectMouseOver = Minecraft.getMinecraft().objectMouseOver;
     if (((objectMouseOver != null && objectMouseOver.typeOfHit == MovingObjectType.ENTITY
@@ -67,7 +73,7 @@ public class EventHandler {
     }
   }
 
-  @SubscribeEvent(priority = EventPriority.HIGH)
+  @SubscribeEvent
   public void onAttack(AttackEntityEvent event) {
     if (event.entity.getEntityId() == Minecraft.getMinecraft().thePlayer.getEntityId() &&
         ((event.target.getName().length() > 2 && event.target.getName().substring(2)
@@ -77,28 +83,33 @@ public class EventHandler {
     }
   }
 
-  @SubscribeEvent(priority = EventPriority.HIGH)
+  @SubscribeEvent(priority = EventPriority.HIGHEST)
   public void onChatMessageReceived(ClientChatReceivedEvent e) {
-    if (e.message.getUnformattedText().equals("A special Zealot has spawned nearby!")) {
+    if (stripString(e.message.getUnformattedText()).equals("A special Zealot has spawned nearby!")) {
       zealotCounter.summoningEyes++;
       zealotCounter.sinceLastEye = 0;
+    } else if (stripString(e.message.getUnformattedText()).startsWith("You are playing on profile: ")) {
+      zealotCounter.currentSetup =
+          Minecraft.getMinecraft().thePlayer.getUniqueID() + " " + stripString(e.message.getUnformattedText())
+              .split(" ")[5];
     }
   }
 
-  @SubscribeEvent(priority = EventPriority.HIGH)
+  @SubscribeEvent(priority = EventPriority.HIGHEST)
   public void onTick(TickEvent.ClientTickEvent e) {
     if (e.phase == TickEvent.Phase.START) {
       tick++;
-      if (tick > 99 && Minecraft.getMinecraft() != null
+      if (tick > 40 && Minecraft.getMinecraft() != null
           && Minecraft.getMinecraft().thePlayer != null) {
-        if (Minecraft.getMinecraft().getCurrentServerData() != null
-            && Minecraft.getMinecraft().getCurrentServerData().serverIP != null
-            && Minecraft.getMinecraft().theWorld.getScoreboard().getObjectiveInDisplaySlot(1)
+        if (Minecraft.getMinecraft().theWorld.getScoreboard().getObjectiveInDisplaySlot(1)
             != null) {
           zealotCounter.isInSkyblock = (stripString(StringUtils.stripControlCodes(
               Minecraft.getMinecraft().theWorld.getScoreboard().getObjectiveInDisplaySlot(1)
-                  .getDisplayName())).startsWith("SKYBLOCK") && Minecraft.getMinecraft()
-              .getCurrentServerData().serverIP.toLowerCase().contains("hypixel.net"));
+                  .getDisplayName())).startsWith("SKYBLOCK"));
+        }
+        if (!zealotCounter.lastSetup.equals(zealotCounter.currentSetup)) {
+          zealotCounter.updateInfoWithCurrentSetup(zealotCounter.currentSetup.split(" ")[0],
+              zealotCounter.currentSetup.split(" ")[1]);
         }
         if (zealotCounter.loggedIn && zealotCounter.isInSkyblock) {
           List<String> scoreboard = zealotCounter.getSidebarLines();
@@ -136,10 +147,18 @@ public class EventHandler {
 
   @SubscribeEvent
   public void onAttemptedRender(TickEvent.RenderTickEvent e) {
-    if (zealotCounter.openGui) {
-      Minecraft.getMinecraft().displayGuiScreen(new Gui());
-      zealotCounter.openGui = false;
+    switch (zealotCounter.openGui) {
+      case "normal":
+        Minecraft.getMinecraft().displayGuiScreen(new Gui());
+        break;
+      case "location":
+        Minecraft.getMinecraft().displayGuiScreen(new Gui.MoveGui());
+        break;
+      case "color":
+        Minecraft.getMinecraft().displayGuiScreen(new Gui.ColorGui());
+        break;
     }
+    zealotCounter.openGui = "";
   }
 
   @SubscribeEvent
@@ -176,7 +195,7 @@ public class EventHandler {
               for (int i = 0; i < latestTag.length; i++) {
                 if (latestTag[i].compareTo(currentTag[i]) != 0) {
                   Minecraft.getMinecraft().thePlayer
-                      .addChatMessage(new ChatComponentTranslation("", new Object[0]));
+                      .addChatMessage(new ChatComponentTranslation(""));
                   if (latestTag[i].compareTo(currentTag[i]) <= -1) {
                     Minecraft.getMinecraft().thePlayer
                         .addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN +
@@ -198,7 +217,7 @@ public class EventHandler {
                         .appendSibling(updateLink));
                   }
                   Minecraft.getMinecraft().thePlayer
-                      .addChatMessage(new ChatComponentTranslation("", new Object[0]));
+                      .addChatMessage(new ChatComponentTranslation(""));
                   break;
                 }
               }
@@ -249,7 +268,8 @@ public class EventHandler {
   }
 
   private void renderStats() {
-    if (zealotCounter.toggled) {
+    if (zealotCounter.toggled && zealotCounter.dragonsNest && !zealotCounter.currentSetup
+        .equals("")) {
       String zealotEye =
           "Zealots/Eye: " + ((zealotCounter.summoningEyes == 0) ? zealotCounter.zealotCount
               : new DecimalFormat("#.##")
