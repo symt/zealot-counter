@@ -32,7 +32,7 @@ import org.json.JSONObject;
 public class ZealotCounter {
 
   public static final String MODID = "ZealotCounter";
-  public static final String VERSION = "1.3.0";
+  public static final String VERSION = "1.3.1";
   private static final String ZEALOT_PATH = "zealotcounter.json";
   public static ZealotCounter instance;
   public String openGui = "";
@@ -44,17 +44,17 @@ public class ZealotCounter {
   public EventHandler eventHandler;
   public String align = "left";
   public int[] guiLocation = new int[]{2, 2};
-  public int zealotSession = 0;
+  int zealotSession = 0;
   boolean loggedIn = false;
   boolean usingLabyMod = false;
   boolean dragonsNest = false;
   int color = 0x55FFFF;
   String lastSetup = "";
-  JSONObject zealotData;
   boolean isInSkyblock = false;
+  private JSONObject zealotData;
   private ScheduledExecutorService autoSaveExecutor;
 
-  static boolean isInteger(String s) {
+  private static boolean isInteger(String s) {
     return isInteger(s, 10);
   }
 
@@ -77,7 +77,7 @@ public class ZealotCounter {
     return true;
   }
 
-  void scheduleFileSave(boolean toggle, int delay) {
+  private void scheduleFileSave(boolean toggle, int delay) {
     if (autoSaveExecutor != null && !autoSaveExecutor.isShutdown()) {
       autoSaveExecutor.shutdownNow();
     }
@@ -136,6 +136,7 @@ public class ZealotCounter {
         FileWriter fw = new FileWriter(zealot_file, false);
         zealotData.getJSONObject("player").put("color", Integer.toHexString(color));
         zealotData.getJSONObject("player").put("location", guiLocation);
+        zealotData.getJSONObject("player").put("align", align);
         fw.write(zealotData.toString());
         fw.close();
       } catch (IOException e) {
@@ -203,7 +204,8 @@ public class ZealotCounter {
       try {
         String[] input = new BufferedReader(new FileReader("zealotcounter.dat")).readLine()
             .split(",");
-        zealotData = new JSONObject("{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2]}}");
+        zealotData = new JSONObject(
+            "{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2], \"align\": \"left\"}}");
         if (input.length == 7 && isInteger(input[0]) && isInteger(input[1]) && isInteger(input[2])
             && isInteger(input[3]) && isInteger(input[4]) && isInteger(input[5], 16)) {
           zealotCount = Integer.parseInt(input[0]);
@@ -220,7 +222,8 @@ public class ZealotCounter {
         e.printStackTrace();
       }
     } else {
-      zealotData = new JSONObject("{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2]}}");
+      zealotData = new JSONObject(
+          "{\"player\":{\"color\": \"ff00ff\", \"location\": [2, 2], \"align\": \"left\"}}");
       saveZealotInfo();
     }
     scheduleFileSave(true, 120);
