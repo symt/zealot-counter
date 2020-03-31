@@ -2,18 +2,7 @@ package io.github.symt;
 
 import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
+import com.mojang.realmsclient.gui.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.scoreboard.Score;
 import net.minecraft.scoreboard.ScoreObjective;
@@ -28,6 +17,15 @@ import net.minecraftforge.fml.common.event.FMLPostInitializationEvent;
 import org.apache.commons.io.IOUtils;
 import org.json.JSONObject;
 
+import java.io.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+
 @Mod(modid = ZealotCounter.MODID, version = ZealotCounter.VERSION)
 public class ZealotCounter {
 
@@ -35,6 +33,7 @@ public class ZealotCounter {
   public static final String VERSION = "1.3.0";
   private static final String ZEALOT_PATH = "zealotcounter.json";
   public static ZealotCounter instance;
+  public static final ChatFormatting zealotCountMessageColor =ChatFormatting.GRAY;
   public String openGui = "";
   public String currentSetup = "";
   public int zealotCount = 0;

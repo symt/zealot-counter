@@ -1,26 +1,13 @@
 package io.github.symt;
 
 import io.github.symt.client.gui.Gui;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.text.DecimalFormat;
-import java.util.List;
-import java.util.concurrent.ScheduledThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.entity.monster.EntityEnderman;
 import net.minecraft.event.ClickEvent;
 import net.minecraft.event.ClickEvent.Action;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.ChatComponentTranslation;
-import net.minecraft.util.EnumChatFormatting;
-import net.minecraft.util.MovingObjectPosition;
+import net.minecraft.util.*;
 import net.minecraft.util.MovingObjectPosition.MovingObjectType;
-import net.minecraft.util.StringUtils;
 import net.minecraftforge.client.event.ClientChatReceivedEvent;
 import net.minecraftforge.client.event.RenderGameOverlayEvent;
 import net.minecraftforge.event.entity.living.LivingDeathEvent;
@@ -31,6 +18,16 @@ import net.minecraftforge.fml.common.gameevent.TickEvent;
 import net.minecraftforge.fml.common.network.FMLNetworkEvent;
 import org.apache.commons.lang3.time.StopWatch;
 import org.json.JSONObject;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.text.DecimalFormat;
+import java.util.List;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
 
 public class EventHandler {
 
@@ -82,6 +79,8 @@ public class EventHandler {
     if (stripString(e.message.getUnformattedText())
         .equals("A special Zealot has spawned nearby!")) {
       zealotCounter.summoningEyes++;
+      IChatComponent zealotCountChatComponent= new ChatComponentText(ZealotCounter.zealotCountMessageColor +" (" + zealotCounter.sinceLastEye + ")");
+      e.message = e.message.appendSibling(zealotCountChatComponent);
       zealotCounter.sinceLastEye = 0;
     } else if (stripString(e.message.getUnformattedText())
         .startsWith("You are playing on profile: ")) {
