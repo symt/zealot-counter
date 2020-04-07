@@ -91,13 +91,20 @@ public class EventHandler {
       zealotCounter.summoningEyes++;
       zealotCounter.sinceLastEye = 0;
     } else if (Utils.stripString(e.message.getUnformattedText())
-        .startsWith("You are playing on profile: ")) {
+    		.startsWith("You are playing on profile: ") || 
+        Utils.stripString(e.message.getUnformattedText())
+    		.startsWith("Your profile was changed to: ")) {
+    		//both strings are 6 words long!
       String nextSetup = Minecraft.getMinecraft().thePlayer.getUniqueID() + ":" + Utils.stripString(
           e.message.getUnformattedText())
           .split(" ")[5];
       if (!nextSetup.equalsIgnoreCase(zealotCounter.currentSetup)) {
         zealotCounter.updateInfoWithCurrentSetup(zealotCounter.currentSetup.split(":"), nextSetup);
       }
+    } else if (Utils.stripString(e.message.getUnformattedText())
+    	.startsWith("Making a little bit of room for your new profile")) { 
+    		//message is sent when a profile has begun creation
+    	ZealotCounter.onNewProfile = true;
     }
   }
 
