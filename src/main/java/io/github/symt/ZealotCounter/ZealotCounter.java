@@ -154,6 +154,8 @@ public class ZealotCounter {
 	String uuid = Minecraft.getMinecraft().getSession().getProfile().getId().toString();
 	//don't create a default profile every time.
 	if((zealotData == null) ||
+		zealotData.isNull("players") ||
+		zealotData.getJSONObject("players").isNull(uuid) ||
 		(zealotData.getJSONObject("players").getJSONObject(uuid).isEmpty())) {
 		currentSetup = uuid + ":" + DEFAULT_PROFILE;
 		updateInfoWithCurrentSetup(currentSetup.split(":"), currentSetup);
