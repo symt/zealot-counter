@@ -38,6 +38,8 @@ public class ZealotCounter {
   boolean isInSkyblock = false;
   private JSONObject zealotData;
   private File configFile;
+  public static final String DEFAULT_PROFILE = "UNKNOWN_PROFILE";
+  public static boolean onNewProfile = false;
 
   /**
    * @param userInfo array with uuid, profile name
@@ -58,22 +60,46 @@ public class ZealotCounter {
     zealotCount = nextUser.getInt("zealotCount");
     summoningEyes = nextUser.getInt("summoningEyes");
     sinceLastEye = nextUser.getInt("sinceLastEye");
-
+    
     saveZealotInfo();
+    //a profile is not new if we know about it
+    onNewProfile = false;
+    
   }
-
   private void verifyInformation(String[] userInfo) {
+
     if (zealotData == null) {
       zealotData = new JSONObject().put("players", new JSONObject());
-    }
+    }  
     if (!zealotData.getJSONObject("players").has(userInfo[0])) {
       zealotData.getJSONObject("players").put(userInfo[0], new JSONObject());
-    }
+    }  
     if (!zealotData.getJSONObject("players").getJSONObject(userInfo[0]).has(userInfo[1])) {
-      zealotData.getJSONObject("players").getJSONObject(userInfo[0])
-          .put(userInfo[1], new JSONObject().put("zealotCount", 0)
+    	//if we are not on a newly created profile and that profile is not in our database then it
+    	//is the real name of the default profile
+    	if(!userInfo[1].equals(DEFAULT_PROFILE) &&
+    			zealotData.getJSONObject("players").getJSONObject(userInfo[0]).has(DEFAULT_PROFILE) &&
+    			!onNewProfile) {
+    		//replace placeholder profile name with real one
+    		zealotData.getJSONObject("players").getJSONObject(userInfo[0]).put(userInfo[1], 
+    			zealotData.getJSONObject("players").getJSONObject(userInfo[0]).getJSONObject(DEFAULT_PROFILE));
+    		zealotData.getJSONObject("players").getJSONObject(userInfo[0]).remove(DEFAULT_PROFILE);
+    	} else {
+    		zealotData.getJSONObject("players").getJSONObject(userInfo[0])
+    		  .put(userInfo[1], new JSONObject().put("zealotCount", 0)
               .put("summoningEyes", 0)
               .put("sinceLastEye", 0));
+    	}
+    } else {
+    	JSONObject profileObject = zealotData
+			.getJSONObject("players")
+			.getJSONObject(userInfo[0])
+			.getJSONObject(userInfo[1]);
+
+    	zealotCount = profileObject.getInt("zealotCount");
+    	summoningEyes = profileObject.getInt("summoningEyes");
+    	sinceLastEye = profileObject.getInt("sinceLastEye");
+    	
     }
   }
 
@@ -125,8 +151,14 @@ public class ZealotCounter {
 
   @Mod.EventHandler
   public void postInit(FMLPostInitializationEvent event) {
-    currentSetup = Minecraft.getMinecraft().getSession().getProfile().getId().toString()
-        + ":NO_PROFILE_SELECTED";
-    updateInfoWithCurrentSetup(currentSetup.split(":"), currentSetup);
+	String uuid = Minecraft.getMinecraft().getSession().getProfile().getId().toString();
+	//don't create a default profile every time.
+	if((zealotData == null) ||
+		zealotData.isNull("players") ||
+		zealotData.getJSONObject("players").isNull(uuid) ||
+		(zealotData.getJSONObject("players").getJSONObject(uuid).isEmpty())) {
+		currentSetup = uuid + ":" + DEFAULT_PROFILE;
+		updateInfoWithCurrentSetup(currentSetup.split(":"), currentSetup);
+	}
   }
 }
